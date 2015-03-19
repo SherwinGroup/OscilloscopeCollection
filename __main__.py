@@ -10,22 +10,61 @@ import pyqtgraph as pg
 import numpy as np
 import threading
 from mainWindow_ui import Ui_MainWindow
-import datetime
-import re
+from scopeView import ScopeViewWidget
+from InstsAndQt.Instruments import Agilent6000
+from InstsAndQt.customQt import TempThread
+import os
+import visa
 
 class Win(QtGui.QMainWindow):
-    boxCarPairsSignal = QtCore.pyqtSignal(dict)
-    settings = dict()
-    parentSettingsSignal = QtCore.pyqtSignal(dict)
-    
+    sigDataUpdate = QtCore.pyqtSignal()
+
     def __init__(self):
         super(Win,self).__init__()
+        self.initSettings()
         self.initUI()
+        self.openAgilent()
+
+    def initSettings(self):
+        s = dict()
+        #########################
+        #
+        # Get the GPIB list and open up the scope
+        #
+        #########################
+        try:
+            rm = visa.ResourceManager()
+            ar = [i.encode('ascii') for i in rm.list_resources()]
+            ar.append('Fake')
+            s['GPIBlist'] = ar
+        except:
+            print 'Error loading GPIB list'
+            ar = ['a', 'b', 'c', 'Fake']
+            s['GPIBlist'] = ar
+        try:
+            # Pretty sure we can safely say it's
+            # ASRL1
+            idx = s['GPIBlist'].index('ASRL1::INSTR')
+            s["oGPIBidx"] = idx
+        except ValueError:
+            # otherwise, just set it to the fake index
+            s["oGPIBidx"] = s['GPIBlist'].index('Fake')
+
+        s["isScopePaused"] = True # Default to paused
+        s["aveScope"] = False
+        s["aveScopeNum"] = 1
+
+        s["saveDir"] = ''
+
+        s["boxcarData"] = np.empty((0, 2))
+        s["boxcarPair"] = np.array([0., 0.])
+        s["boxcarPairFlag"] = [False, False]
+
+        self.settings = s
         
     def initUI(self):
         #Import ui file from designer
         self.ui = Ui_MainWindow()
-
         self.ui.setupUi(self)
 
         ######################################################
@@ -391,7 +430,20 @@ class Win(QtGui.QMainWindow):
 
 
     def closeEvent(self,event):
+        self.settings['isScopePaused'] = False
+        self.settings['shouldScopeLoop'] = False
+        try:
+            self.scopePausingLoop.exit()
+        except:
+            pass
+        try:
+            self.scopeCollectionThread.wait()
+        except:
+            pass
+        self.Agilent.write(':RUN')
+        self.Agilent.close()
         self.close()
+
         
 
 def main():
