@@ -18,12 +18,16 @@ import visa
 
 class Win(QtGui.QMainWindow):
     sigDataUpdate = QtCore.pyqtSignal()
+    sigSetStatusBar = QtCore.pyqtSignal(object)
 
     def __init__(self):
         super(Win,self).__init__()
         self.initSettings()
         self.initUI()
         self.openAgilent()
+        # self.sigSetStatusBar[str].connect(self.statusBar().showMessage)
+        # self.sigSetStatusBar[str, int].connect(self.statusBar().showMessage)
+        self.sigSetStatusBar.connect(self.updateStatusBar)
 
     def initSettings(self):
         s = dict()
@@ -159,6 +163,12 @@ class Win(QtGui.QMainWindow):
 
 
         self.show()
+
+    def updateStatusBar(self, obj):
+        if type(obj) is str:
+            self.statusBar().showMessage(obj, 3000)
+        elif type(obj) is list and len(obj)==2:
+            self.statusBar().showMessage(obj[0], obj[1])
 
     @staticmethod
     def _____CHANNEL_SETTINGS():
@@ -382,15 +392,21 @@ class Win(QtGui.QMainWindow):
             filelist = os.listdir(self.settings["saveDir"])
         except:
             print "__main__saveFile:Error, path doesn't exist"
+            self.sigSetStatusBar.emit("Please choose a save dir")
             return
         basename = str(self.ui.tSettingsSaveName.text())
         filelist = [i for i in filelist if basename+"_"+filename in i]
         num = len(filelist)
-        print "There are already {} files of {}".format(num, filename)
 
-        np.savetxt(os.path.join(self.settings["saveDir"],
-                                basename+"_"+filename+"_"+str(num)+".txt" ),
-                   data, header=header)
+        try:
+            np.savetxt(os.path.join(self.settings["saveDir"],
+                                    basename+"_"+filename+"_"+str(num)+".txt" ),
+                       data, header=header)
+        except Exception as e:
+            print "__main__saveFile:Error file cannae be saved,",e
+            self.sigSetStatusBar.emit("File could not be saved")
+        else:
+            self.sigSetStatusBar.emit("Saved file {}".format(basename+"_"+filename+"_"+str(num)))
 
     def saveAllChannels(self):
         toSave = [True if i.isChecked() else False for i in self.chBoxList]
@@ -425,8 +441,6 @@ class Win(QtGui.QMainWindow):
 
             st += "{}, {}\n".format(self.wantedBoxcarWidX, self.wantedBoxcarWidY)
         return st
-
-
 
 
     def closeEvent(self,event):
