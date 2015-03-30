@@ -48,7 +48,7 @@ class Win(QtGui.QMainWindow):
         try:
             # Pretty sure we can safely say it's
             # ASRL1
-            idx = s['GPIBlist'].index('ASRL1::INSTR')
+            idx = s['GPIBlist'].index("USB0::0x0957::0x1798::MY54410143::INSTR")
             s["oGPIBidx"] = idx
         except ValueError:
             # otherwise, just set it to the fake index
@@ -260,7 +260,7 @@ class Win(QtGui.QMainWindow):
             )
             self.ui.cSettingsGPIB.currentIndexChanged.connect(self.openAgilent)
 
-        self.Agilent.setTrigger()
+        self.Agilent.setTrigger(source = "EXT")
         self.settings['shouldScopeLoop'] = True
         if isPaused:
             self.toggleScopePause(True)
@@ -322,23 +322,33 @@ class Win(QtGui.QMainWindow):
     #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     def updateWantedBoxcars(self):
         sent = self.sender()
+        wantedWid = [
+            i for i in self.chWidList if i.name == str(sent.currentText())
+        ][0]
         if sent == self.ui.cBoxcarCHX:
             axis = "bottom"
-            self.wantedBoxcarWidX = self.chWidList[sent.currentIndex()]
+            self.wantedBoxcarWidX = wantedWid
         else:
             axis = "left"
-            self.wantedBoxcarWidY = self.chWidList[sent.currentIndex()]
+            self.wantedBoxcarWidY = wantedWid
         plotitem = self.ui.gBoxcar.getPlotItem()
         plotitem.setLabel(axis,text=sent.currentText())
 
     def acceptSingleBoxcar(self, bcVal):
         sent = self.sender()
+        print "Got: {}".format(sent.name)
         if sent == self.wantedBoxcarWidX:
+            print "\tGot x"
             self.settings["boxcarPair"][0] = bcVal
             self.settings["boxcarPairFlag"][0] = True
         if sent == self.wantedBoxcarWidY:
+            print "\tGot y"
             self.settings["boxcarPair"][1] = bcVal
             self.settings["boxcarPairFlag"][1] = True
+        if sent not in [self.wantedBoxcarWidX, self.wantedBoxcarWidY]:
+            print "\tNot either. {} or {}".format(
+                self.wantedBoxcarWidX.name, self.wantedBoxcarWidY.name
+            )
         if False not in self.settings["boxcarPairFlag"]:
             self.updateBoxcars()
 
