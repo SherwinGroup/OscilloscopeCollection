@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'C:\Users\dvalovcin\Documents\GitHub\OscilloscopeCollection\singleChannel.ui'
 #
-# Created: Wed Mar 18 14:40:18 2015
+# Created: Tue Mar 31 08:26:02 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName(_fromUtf8("Form"))
-        Form.resize(568, 610)
+        Form.resize(583, 525)
         self.verticalLayout = QtGui.QVBoxLayout(Form)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.gPlot = PlotWidget(Form)
@@ -89,6 +89,17 @@ class Ui_Form(object):
         self.tSGBoxcar.setObjectName(_fromUtf8("tSGBoxcar"))
         self.horizontalLayout_6.addWidget(self.tSGBoxcar)
         self.gridLayout.addWidget(self.groupBox_6, 1, 2, 1, 1)
+        self.groupBox_7 = QtGui.QGroupBox(Form)
+        self.groupBox_7.setObjectName(_fromUtf8("groupBox_7"))
+        self.horizontalLayout_7 = QtGui.QHBoxLayout(self.groupBox_7)
+        self.horizontalLayout_7.setContentsMargins(0, 10, 0, 0)
+        self.horizontalLayout_7.setObjectName(_fromUtf8("horizontalLayout_7"))
+        self.cSave = QtGui.QCheckBox(self.groupBox_7)
+        self.cSave.setText(_fromUtf8(""))
+        self.cSave.setChecked(True)
+        self.cSave.setObjectName(_fromUtf8("cSave"))
+        self.horizontalLayout_7.addWidget(self.cSave)
+        self.gridLayout.addWidget(self.groupBox_7, 1, 3, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
 
         self.retranslateUi(Form)
@@ -107,6 +118,7 @@ class Ui_Form(object):
         self.tBGEnd.setText(_translate("Form", "0", None))
         self.groupBox_5.setTitle(_translate("Form", "Value:", None))
         self.groupBox_6.setTitle(_translate("Form", "Value:", None))
+        self.groupBox_7.setTitle(_translate("Form", "Save?", None))
 
 from pyqtgraph import PlotWidget
 from InstsAndQt.customQt import QFNumberEdit
