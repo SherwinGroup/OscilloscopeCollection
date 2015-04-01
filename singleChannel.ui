@@ -24,6 +24,9 @@
        <property name="title">
         <string>BG Start</string>
        </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
          <widget class="QFNumberEdit" name="tBGStart">
@@ -47,6 +50,9 @@
        <property name="title">
         <string>Sig End</string>
        </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="QFNumberEdit" name="tSGEnd">
@@ -63,6 +69,9 @@
        <property name="title">
         <string>Sig Start</string>
        </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QFNumberEdit" name="tSGStart">
@@ -78,6 +87,9 @@
       <widget class="QGroupBox" name="groupBox_2">
        <property name="title">
         <string>BG End</string>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
@@ -130,6 +142,9 @@
       <widget class="QGroupBox" name="groupBox_7">
        <property name="title">
         <string>Save?</string>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_7">
         <property name="leftMargin">
