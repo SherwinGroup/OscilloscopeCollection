@@ -12,7 +12,7 @@ import threading
 from mainWindow_ui import Ui_MainWindow
 from scopeView import ScopeViewWidget
 from InstsAndQt.Instruments import Agilent6000
-from InstsAndQt.customQt import TempThread
+from InstsAndQt.customQt import *
 import os
 import visa
 
@@ -28,6 +28,8 @@ class Win(QtGui.QMainWindow):
         # self.sigSetStatusBar[str].connect(self.statusBar().showMessage)
         # self.sigSetStatusBar[str, int].connect(self.statusBar().showMessage)
         self.sigSetStatusBar.connect(self.updateStatusBar)
+        self.poppedPlotWindow = None
+        self.oldpOsc = None
 
     def initSettings(self):
         s = dict()
@@ -110,6 +112,26 @@ class Win(QtGui.QMainWindow):
 
         ######################################################
         #
+        # Initialize status bar
+        #
+        ######################################################
+        self.sbTextList = [QTimedText(), # CH1 saved
+                           QTimedText(), # CH2 saved
+                           QTimedText(), # CH3 saved
+                           QTimedText(), # CH4 saved
+                           QTimedText()] # General
+
+        for i in self.sbTextList:
+            self.statusBar().addPermanentWidget(i, 1) # 1 for weighting
+
+        # Removes the weird lines that show up when you have a bunch of permanent widgest
+        #http://stackoverflow.com/questions/16218232/qprogressbar-on-qstatusbar-how-to-remove-the-2-little-vertical-lines-on-either
+
+        self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
+
+
+        ######################################################
+        #
         # Initialize settings
         #
         ######################################################
@@ -165,10 +187,26 @@ class Win(QtGui.QMainWindow):
         self.show()
 
     def updateStatusBar(self, obj):
+        # If just a string is passed, set the general status bar text
         if type(obj) is str:
-            self.statusBar().showMessage(obj, 3000)
-        elif type(obj) is list and len(obj)==2:
-            self.statusBar().showMessage(obj[0], obj[1])
+            self.sbTextList[-1].setMessage(obj)
+        # Else it must be a list, if not, dunno what you want
+        elif type(obj) is list:
+            if len(obj)==2:
+                # This is a string and a timeout, assume you want general
+                if type(obj[1]) is int:
+                    self.sbTextList[-1].setMessage(obj[0], obj[1])
+                # Or did you pass the object you want updated?
+                elif type(obj[1]) is type(self.sbTextList[-1]):
+                    obj[1].setMessage(obj[0])
+            # Or you passed the object to be updated and the time
+            elif len(obj) == 3 and type(obj[1]) is type(self.sbTextList[-1]):
+                obj[1].setMessage(obj[0], obj[2])
+            else:
+                print "UPDATE STATUSBAR: UNKONWN COMMANDA: {}, {}".format(type(obj[1]), type(self.sbTextList[-1]))
+        else:
+            print "UPDATE STATUSBAR: UNKONWN COMMANDB: {}".format(obj)
+
 
     @staticmethod
     def _____CHANNEL_SETTINGS():
@@ -331,24 +369,20 @@ class Win(QtGui.QMainWindow):
         else:
             axis = "left"
             self.wantedBoxcarWidY = wantedWid
-        plotitem = self.ui.gBoxcar.getPlotItem()
+        if self.poppedPlotWindow is not None:
+            plotitem = self.poppedPlotWindow.pw.getPlotItem()
+        else:
+            plotitem = self.ui.gBoxcar.getPlotItem()
         plotitem.setLabel(axis,text=sent.currentText())
 
     def acceptSingleBoxcar(self, bcVal):
         sent = self.sender()
-        print "Got: {}".format(sent.name)
         if sent == self.wantedBoxcarWidX:
-            print "\tGot x"
             self.settings["boxcarPair"][0] = bcVal
             self.settings["boxcarPairFlag"][0] = True
         if sent == self.wantedBoxcarWidY:
-            print "\tGot y"
             self.settings["boxcarPair"][1] = bcVal
             self.settings["boxcarPairFlag"][1] = True
-        if sent not in [self.wantedBoxcarWidX, self.wantedBoxcarWidY]:
-            print "\tNot either. {} or {}".format(
-                self.wantedBoxcarWidX.name, self.wantedBoxcarWidY.name
-            )
         if False not in self.settings["boxcarPairFlag"]:
             self.updateBoxcars()
 
@@ -366,7 +400,21 @@ class Win(QtGui.QMainWindow):
         self.pBoxcar.setData([], [])
 
     def popoutBoxcar(self):
-        print "NOTIMPLEMENTED: popoutBoxcar"
+        if self.poppedPlotWindow is None:
+            self.poppedPlotWindow = pgPlot()
+            self.oldpBoxcar = self.pBoxcar
+            self.pBoxcar = self.poppedPlotWindow.pw.plot(pen='k')
+            plotitem = self.poppedPlotWindow.pw.getPlotItem()
+            plotitem.setTitle("Boxcar Values")
+            plotitem.setLabel('bottom',text=self.wantedBoxcarWidX.name)
+            plotitem.setLabel('left',text=self.wantedBoxcarWidY.name)
+            self.poppedPlotWindow.closedSig.connect(self.cleanupCloseBoxcar)
+        else:
+            self.poppedPlotWindow.raise_()
+
+    def cleanupCloseBoxcar(self):
+        self.poppedPlotWindow = None
+        self.pBoxcar = self.oldpBoxcar
 
     @staticmethod
     def _____SAVING():
@@ -388,11 +436,12 @@ class Win(QtGui.QMainWindow):
         self.settings["saveDir"] = str(directory)
         self.ui.tSettingsSaveDir.setText(directory)
 
-    def saveFile(self, data = None, filename = "", header = ""):
+    def saveFile(self, data = None, filename = "", header = "", statusbar = None):
         """
         All files will be saved in the form of:
         self.ui.tSettingsSaveName_base_number
         where filename = base, and number is how many files already exist
+        statusbar is the widget which should be updated
         :param data:
         :param filename:
         :param header:
@@ -416,15 +465,24 @@ class Win(QtGui.QMainWindow):
             print "__main__saveFile:Error file cannae be saved,",e
             self.sigSetStatusBar.emit("File could not be saved")
         else:
-            self.sigSetStatusBar.emit("Saved file {}".format(basename+"_"+filename+"_"+str(num)))
+            if statusbar is not None:
+                self.sigSetStatusBar.emit(["Saved file {}".format(basename+"_"+filename+"_"+str(num)), statusbar])
+            else:
+                self.sigSetStatusBar.emit("Saved file {}".format(basename+"_"+filename+"_"+str(num)))
 
     def saveAllChannels(self):
-        toSave = [True if i.isChecked() else False for i in self.chBoxList]
+        # Which channels are checked to be shown?
+        toSaveShowing = [True if i.isChecked() else False for i in self.chBoxList]
+        # Which channels are checked to be saved?
+        toSaveChecked = [i.ui.cSave.isChecked() for i in self.chWidList]
+        # Which fits both?
+        toSave = [x&y for (x, y) in zip(toSaveShowing, toSaveChecked)]
         for i in range(len(toSave)):
             if toSave[i]:
                 self.saveFile(self.chWidList[i].data,
                               filename = str(self.chWidList[i]),
-                              header = self.genHeader())
+                              header = self.genHeader(),
+                              statusbar=self.sbTextList[i])
 
     def saveBoxcar(self):
         self.saveFile(self.settings["boxcarData"],
