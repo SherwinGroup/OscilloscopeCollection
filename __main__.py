@@ -50,7 +50,7 @@ class Win(QtGui.QMainWindow):
         try:
             # Pretty sure we can safely say it's
             # ASRL1
-            idx = s['GPIBlist'].index("USB0::0x0957::0x1798::MY54410143::INSTR")
+            idx = s['GPIBlist'].index("USB0::0x0957::0x1734::MY44007041::INSTR")
             s["oGPIBidx"] = idx
         except ValueError:
             # otherwise, just set it to the fake index
@@ -298,8 +298,15 @@ class Win(QtGui.QMainWindow):
             )
             self.ui.cSettingsGPIB.currentIndexChanged.connect(self.openAgilent)
 
-        self.Agilent.setTrigger(source = "EXT")
+        self.Agilent.setTrigger(source = "4", level=1.15)
         self.settings['shouldScopeLoop'] = True
+
+        print "number of points:", self.Agilent.ask(":WAV:POIN?")
+        # self.Agilent.setWaveformPoints(1000000)
+        # self.Agilent.write(":WAV:POIN:MODE MAX")
+        self.Agilent.write(":WAV:POIN 50000")
+
+
         if isPaused:
             self.toggleScopePause(True)
 
